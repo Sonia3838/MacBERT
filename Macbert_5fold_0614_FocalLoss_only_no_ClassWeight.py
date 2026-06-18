@@ -53,6 +53,15 @@ except ModuleNotFoundError:
     files = None
     IN_COLAB = False
 
+try:
+    from IPython.display import display
+except ModuleNotFoundError:
+    def display(obj):
+        if hasattr(obj, "to_string"):
+            print(obj.to_string())
+        else:
+            print(obj)
+
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import (
     accuracy_score,
