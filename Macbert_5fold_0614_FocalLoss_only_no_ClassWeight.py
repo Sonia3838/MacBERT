@@ -927,12 +927,25 @@ import matplotlib.pyplot as plt
 # 下載繁體中文字型
 # NOTE: notebook shell command; run manually if needed: !wget -O SourceHanSerifTW-VF.ttf https://github.com/adobe-fonts/source-han-serif/raw/release/Variable/TTF/Subset/SourceHanSerifTW-VF.ttf
 
-# 加入字型檔
-fm.fontManager.addfont('SourceHanSerifTW-VF.ttf')
-
-# 設定字型
-#
-mpl.rc('font', family='Source Han Serif TW VF')
+font_path = Path("SourceHanSerifTW-VF.ttf")
+if font_path.exists():
+    fm.fontManager.addfont(str(font_path))
+    mpl.rc("font", family="Source Han Serif TW VF")
+else:
+    available_fonts = {font.name for font in fm.fontManager.ttflist}
+    preferred_fonts = [
+        "Noto Sans CJK TC",
+        "Noto Sans CJK JP",
+        "Microsoft JhengHei",
+        "PingFang TC",
+        "SimHei",
+    ]
+    selected_font = next((font for font in preferred_fonts if font in available_fonts), None)
+    if selected_font:
+        mpl.rc("font", family=selected_font)
+    else:
+        print("找不到 SourceHanSerifTW-VF.ttf 或系統中文字型，圖表中文字可能無法正常顯示。")
+mpl.rcParams["axes.unicode_minus"] = False
 
 # %% [cell 10]
 # 9
