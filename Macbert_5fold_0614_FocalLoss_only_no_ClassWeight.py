@@ -44,8 +44,14 @@ import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import shutil
+from pathlib import Path
 
-from google.colab import files
+try:
+    from google.colab import files
+    IN_COLAB = True
+except ModuleNotFoundError:
+    files = None
+    IN_COLAB = False
 
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import (
@@ -70,15 +76,23 @@ from transformers import (
 )
 
 # %% [cell 4]
-uploaded = files.upload()
+if IN_COLAB:
+    uploaded = files.upload()
+    uploaded_filename = list(uploaded.keys())[0]
+else:
+    csv_files = sorted(Path(".").glob("*.csv"))
+    if not csv_files:
+        raise FileNotFoundError("找不到 CSV 檔案，請把資料 CSV 放在這支程式同一個資料夾。")
+    uploaded_filename = str(csv_files[0])
 
 # %% [cell 5]
-uploaded_filename = list(uploaded.keys())[0]
-print("你上傳的檔案名稱：", uploaded_filename)
+print("使用的資料檔案：", uploaded_filename)
 
 # %% [cell 6]
 INPUT_CSV = uploaded_filename
-OUTPUT_DIR = "/content/macbert_taiwan_fm_output"
+OUTPUT_BASE_DIR = Path("/content") if IN_COLAB else Path("outputs")
+OUTPUT_BASE_DIR.mkdir(parents=True, exist_ok=True)
+OUTPUT_DIR = str(OUTPUT_BASE_DIR / "macbert_taiwan_fm_output")
 MODEL_NAME = "hfl/chinese-macbert-base"
 
 TEXT_COL_MODE = "auto"          # "auto" / "question_text_only"
@@ -98,10 +112,10 @@ N_SPLITS = 5
 FOCAL_GAMMA = 2.0
 TOP_K = 3
 
-AUTO_LABEL_OUTPUT = "/content/MacBERT_Taiwan_FM_with_auto_label.csv"
-SUCCESS_LABEL_OUTPUT = "/content/MacBERT_Taiwan_FM_classification_success.csv"
-FAILED_LABEL_OUTPUT = "/content/MacBERT_Taiwan_FM_label_extract_failed.csv"
-STATS_OUTPUT = "/content/MacBERT_Taiwan_FM_success_failed_stats.csv"
+AUTO_LABEL_OUTPUT = str(OUTPUT_BASE_DIR / "MacBERT_Taiwan_FM_with_auto_label.csv")
+SUCCESS_LABEL_OUTPUT = str(OUTPUT_BASE_DIR / "MacBERT_Taiwan_FM_classification_success.csv")
+FAILED_LABEL_OUTPUT = str(OUTPUT_BASE_DIR / "MacBERT_Taiwan_FM_label_extract_failed.csv")
+STATS_OUTPUT = str(OUTPUT_BASE_DIR / "MacBERT_Taiwan_FM_success_failed_stats.csv")
 
 set_seed(RANDOM_STATE)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -1260,7 +1274,7 @@ plt.show()
 # 使用全部資料重新訓練 Final MacBERT Model
 # ============================================================
 
-final_output_dir = "/content/macbert_final_model"
+final_output_dir = str(OUTPUT_BASE_DIR / "macbert_final_model")
 
 final_df = df[["text", "label"]].reset_index(drop=True)
 final_dataset = Dataset.from_pandas(final_df)
@@ -1308,7 +1322,7 @@ print("Final MacBERT model 已儲存到：", final_output_dir)
 # 壓縮並下載MacBERT與tokenizer
 # =================================
 
-zip_path = "/content/macbert_final_model.zip"
+zip_path = str(OUTPUT_BASE_DIR / "macbert_final_model.zip")
 
 shutil.make_archive(
     base_name=zip_path.replace(".zip", ""),
@@ -1317,7 +1331,7 @@ shutil.make_archive(
 )
 
 # %% [cell 13]
-results_csv = "/content/macbert_5fold_cv_results.csv"
+results_csv = str(OUTPUT_BASE_DIR / "macbert_5fold_cv_results.csv")
 results_df.to_csv(results_csv, index=False, encoding="utf-8-sig")
 
 summary = {
@@ -1346,7 +1360,7 @@ summary = {
     "top_k": int(TOP_K)
 }
 
-summary_json = "/content/macbert_5fold_cv_summary.json"
+summary_json = str(OUTPUT_BASE_DIR / "macbert_5fold_cv_summary.json")
 with open(summary_json, "w", encoding="utf-8") as f:
     json.dump(summary, f, ensure_ascii=False, indent=2)
 
@@ -1357,12 +1371,21 @@ print(overall_per_class_output)
 print(all_fold_per_class_output)
 
 # %% [cell 14]
-files.download("/content/macbert_5fold_cv_results.csv")
-files.download("/content/macbert_5fold_cv_summary.json")
-files.download(overall_per_class_output)
-files.download(all_fold_per_class_output)
+download_paths = [
+    results_csv,
+    summary_json,
+    overall_per_class_output,
+    all_fold_per_class_output,
+    AUTO_LABEL_OUTPUT,
+    SUCCESS_LABEL_OUTPUT,
+    FAILED_LABEL_OUTPUT,
+    zip_path,
+]
 
-files.download("/content/MacBERT_Taiwan_FM_with_auto_label.csv")
-files.download("/content/MacBERT_Taiwan_FM_classification_success.csv")
-files.download("/content/MacBERT_Taiwan_FM_label_extract_failed.csv")
-files.download(zip_path)
+if IN_COLAB:
+    for download_path in download_paths:
+        files.download(download_path)
+else:
+    print("輸出檔案已儲存在：")
+    for download_path in download_paths:
+        print(download_path)
