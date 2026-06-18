@@ -1162,6 +1162,9 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(X, y), start=1):
     fig, ax = plt.subplots(figsize=(12, 10))
     disp.plot(ax=ax, xticks_rotation=90, values_format="d")
     plt.title(f"Fold {fold} 混淆矩陣")
+    fold_cm_path = OUTPUT_BASE_DIR / f"fold_{fold}_confusion_matrix.png"
+    plt.savefig(fold_cm_path, dpi=200, bbox_inches="tight")
+    print(f"Fold {fold} confusion matrix 已儲存到：{fold_cm_path}")
     plt.show()
 
 # %% [cell 11]
@@ -1288,6 +1291,9 @@ ax.tick_params(axis="y", labelsize=15)
 for text in ax.texts:
     text.set_fontsize(20)
 
+overall_cm_path = OUTPUT_BASE_DIR / "overall_confusion_matrix.png"
+plt.savefig(overall_cm_path, dpi=200, bbox_inches="tight")
+print(f"Overall confusion matrix 已儲存到：{overall_cm_path}")
 plt.show()
 
 # %% [cell 12]
